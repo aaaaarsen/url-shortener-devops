@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: shortener-pod
+spec:
+  containers:
+    - name: front
+      image: localhost/shortener-front:latest
+      ports:
+        - containerPort: 80
+          hostPort: 80
+
+    - name: back
+      image: localhost/shortener-back:latest
+      env:
+        - name: DB_HOST
+          value: "localhost"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          value: "changeme"
+        - name: DB_NAME
+          value: "shortener"
+        - name: PORT
+          value: "8080"
+
+    - name: db
+      image: docker.io/library/postgres:16-alpine
+      env:
+        - name: POSTGRES_PASSWORD
+          value: "changeme"
+        - name: POSTGRES_DB
+          value: "shortener"
+      volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+
+  volumes:
+    - name: pgdata
+      hostPath:
+        path: /opt/shortener/pgdata
+        type: DirectoryOrCreate

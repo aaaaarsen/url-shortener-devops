@@ -1,0 +1,6 @@
+back/server
+back/server.exe
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/.terraform.lock.hcl
