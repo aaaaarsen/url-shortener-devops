@@ -1,0 +1,14 @@
+# Quadlet unit: systemd generates shortener.service from this file.
+# Location on the VM: /home/shortener/.config/containers/systemd/shortener.kube
+[Unit]
+Description=URL shortener pod (front + back + db)
+
+[Kube]
+Yaml=/opt/shortener/pod.yaml
+
+[Service]
+Restart=on-failure
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

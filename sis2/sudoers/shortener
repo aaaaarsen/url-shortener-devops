@@ -1,0 +1,17 @@
+# /etc/sudoers.d/shortener
+# Roles for the URL shortener project (SIS2).
+# Never edit by hand without validation: sudo visudo -f /etc/sudoers.d/shortener
+
+Cmnd_Alias SHORTENER_VIEW   = /usr/local/sbin/shortener-ctl status, \
+                              /usr/local/sbin/shortener-ctl logs
+Cmnd_Alias SHORTENER_DEPLOY = /usr/local/sbin/shortener-ctl restart, \
+                              /usr/local/sbin/shortener-ctl update
+
+# Administrators: full sudo, password required.
+%shortener_admins    ALL=(ALL:ALL) ALL
+
+# Auditors: read-only view of the service, password required.
+%shortener_auditors  ALL=(root) SHORTENER_VIEW
+
+# Automation bot: view + deploy, no password (SSH-key-only account).
+%shortener_deploy    ALL=(root) NOPASSWD: SHORTENER_VIEW, SHORTENER_DEPLOY

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# /usr/local/sbin/shortener-ctl
+# A fixed set of actions on the shortener service. It is called through sudo by
+# auditors (status, logs) and by the automation bot (status, restart, update).
+# It accepts no free-form arguments, so sudo can allow exactly these commands.
+set -euo pipefail
+
+SVC_USER="shortener"
+SVC_UID="$(id -u "$SVC_USER")"
+UNIT="shortener.service"
+
+run_as_svc() {
+  (
+    cd "/home/${SVC_USER}" || exit 1
+    runuser -u "$SVC_USER" -- env \
+      HOME="/home/${SVC_USER}" \
+      XDG_RUNTIME_DIR="/run/user/${SVC_UID}" \
+      DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${SVC_UID}/bus" \
+      "$@"
+  )
+}
+
+case "${1:-}" in
+  status)
+    run_as_svc systemctl --user --no-pager status "$UNIT" || true
+    echo
+    run_as_svc podman pod ps
+    ;;
+  logs)
+    journalctl --no-pager -n 100 "_UID=${SVC_UID}"
+    echo
+    run_as_svc podman pod logs --tail 50 shortener-pod || true
+    ;;
+  restart)
+    run_as_svc systemctl --user restart "$UNIT"
+    echo "restarted ${UNIT}"
+    ;;
+  update)
+    run_as_svc bash -c '
+      set -euo pipefail
+      cd "$HOME/src/url-shortener-devops"
+      git pull --ff-only
+      podman build -t localhost/shortener-back:latest ./back
+      podman build -t localhost/shortener-front:latest ./front
+      cat pod.yaml > /opt/shortener/pod.yaml
+    '
+    run_as_svc systemctl --user restart "$UNIT"
+    echo "updated and restarted ${UNIT}"
+    ;;
+  *)
+    echo "usage: shortener-ctl {status|logs|restart|update}" >&2
+    exit 2
+    ;;
+esac
